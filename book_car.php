@@ -68,11 +68,8 @@ if (isset($_GET['id'])) {
                     </div>
                 </div>
                 
-                <!-- Booking Form -->
-                <form method="post" action="confirm_booking.php">
-                    <input type="hidden" name="car_id" value="<?php echo $car['id']; ?>">
-                    <input type="submit" value="Confirm Booking" class="book-now-btn">
-                </form>
+                <!-- Booking Button (triggers modal) -->
+                <button id="openBookingDialog" class="book-now-btn">Confirm Booking</button>
             </div>
         </div>
 
@@ -81,6 +78,93 @@ if (isset($_GET['id'])) {
         <div class="description-card">
             <p><?php echo nl2br(htmlspecialchars($car['description'])); ?></p> <!-- Display Description -->
         </div>
+
+        <!-- Booking Dialog (hidden by default) -->
+        <div id="bookingDialog" class="dialog-overlay">
+            <div class="dialog-content">
+                <h2>Booking Details</h2>
+                <div class="dialog-row">
+                    <span class="dialog-label">Car Name:</span>
+                    <span class="dialog-value"><?php echo htmlspecialchars($car['make'] . ' ' . $car['model'] . ' ' . $car['year']); ?></span>
+                </div>
+                <div class="dialog-row">
+                    <label class="dialog-label" for="startDate">Start Date:</label>
+                    <input type="date" id="startDate" name="startDate" class="dialog-input" required>
+                </div>
+                <div class="dialog-row">
+                    <label class="dialog-label" for="endDate">End Date:</label>
+                    <input type="date" id="endDate" name="endDate" class="dialog-input" required>
+                </div>
+                <div class="dialog-row">
+                    <span class="dialog-label">Rate per day:</span>
+                    <span class="dialog-value">$<?php echo htmlspecialchars($car['daily_rate']); ?></span>
+                </div>
+                <div class="dialog-buttons">
+                    <button type="button" id="cancelBooking" class="dialog-button cancel">Cancel</button>
+                    <form method="post" action="confirm_booking.php" id="bookingForm">
+                        <input type="hidden" name="car_id" value="<?php echo $car['id']; ?>">
+                        <input type="hidden" name="start_date" id="formStartDate">
+                        <input type="hidden" name="end_date" id="formEndDate">
+                        <button type="submit" class="dialog-button confirm">Confirm Booking</button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function() {
+                const dialog = document.getElementById('bookingDialog');
+                const openButton = document.getElementById('openBookingDialog');
+                const cancelButton = document.getElementById('cancelBooking');
+                const startDateInput = document.getElementById('startDate');
+                const endDateInput = document.getElementById('endDate');
+                const formStartDate = document.getElementById('formStartDate');
+                const formEndDate = document.getElementById('formEndDate');
+                const bookingForm = document.getElementById('bookingForm');
+
+                // Set minimum date to today
+                const today = new Date().toISOString().split('T')[0];
+                startDateInput.min = today;
+                
+                // Update end date min date when start date changes
+                startDateInput.addEventListener('change', function() {
+                    endDateInput.min = this.value;
+                    if (endDateInput.value && endDateInput.value < this.value) {
+                        endDateInput.value = this.value;
+                    }
+                });
+
+                // Open dialog
+                openButton.addEventListener('click', function() {
+                    dialog.style.display = 'flex';
+                });
+
+                // Close dialog
+                cancelButton.addEventListener('click', function() {
+                    dialog.style.display = 'none';
+                });
+
+                // Handle form submission
+                bookingForm.addEventListener('submit', function(e) {
+                    if (!startDateInput.value || !endDateInput.value) {
+                        e.preventDefault();
+                        alert('Please select both start and end dates');
+                        return;
+                    }
+                    
+                    // Set the hidden form values
+                    formStartDate.value = startDateInput.value;
+                    formEndDate.value = endDateInput.value;
+                });
+
+                // Close dialog when clicking outside
+                window.addEventListener('click', function(event) {
+                    if (event.target === dialog) {
+                        dialog.style.display = 'none';
+                    }
+                });
+            });
+        </script>
 
         <?php
     } else {
@@ -179,4 +263,90 @@ include 'php/footer.php';
     line-height: 1.6;
 }
 
+/* Booking Dialog Styles */
+.dialog-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.dialog-content {
+    background-color: white;
+    padding: 25px;
+    border-radius: 8px;
+    width: 90%;
+    max-width: 500px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dialog-content h2 {
+    margin-top: 0;
+    color: #333;
+    font-size: 24px;
+    margin-bottom: 20px;
+}
+
+.dialog-row {
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+}
+
+.dialog-label {
+    font-weight: bold;
+    width: 120px;
+    margin-right: 10px;
+}
+
+.dialog-value {
+    flex: 1;
+}
+
+.dialog-input {
+    flex: 1;
+    padding: 8px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+}
+
+.dialog-buttons {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 25px;
+    gap: 10px;
+}
+
+.dialog-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.dialog-button.confirm {
+    background-color: #28a745;
+    color: white;
+}
+
+.dialog-button.confirm:hover {
+    background-color: #218838;
+}
+
+.dialog-button.cancel {
+    background-color: #dc3545;
+    color: white;
+}
+
+.dialog-button.cancel:hover {
+    background-color: #c82333;
+}
 </style>

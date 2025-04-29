@@ -62,7 +62,9 @@ if (isset($_POST['cancel_booking_id'])) {
 $bookings = [];
 $sql = "SELECT bookings.id,
                CONCAT(vehicles.make, ' ', vehicles.model) AS vehicle_name, 
-               bookings.booking_date, 
+               bookings.start_date, 
+               bookings.end_date, 
+               bookings.total_cost, 
                TRIM(LOWER(bookings.status)) AS status
         FROM bookings
         INNER JOIN vehicles ON bookings.vehicle_id = vehicles.id
@@ -173,7 +175,9 @@ tr:hover {
             <thead>
                 <tr>
                     <th>Vehicle Name</th>
-                    <th>Booking Date</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Total Cost</th>
                     <th>Status</th>
                     <th>Action</th>
                 </tr>
@@ -184,7 +188,9 @@ tr:hover {
     <?php foreach ($bookings as $booking): ?>
         <tr>
             <td><?php echo htmlspecialchars($booking['vehicle_name']); ?></td>
-            <td><?php echo htmlspecialchars(date('d M Y', strtotime($booking['booking_date']))); ?></td>
+            <td><?php echo htmlspecialchars(date('d M Y', strtotime($booking['start_date']))); ?></td>
+            <td><?php echo htmlspecialchars(date('d M Y', strtotime($booking['end_date']))); ?></td>
+            <td><?php echo htmlspecialchars($booking['total_cost']); ?></td>
             <td class="status-<?php echo htmlspecialchars($booking['status']); ?>">
                 <?php echo htmlspecialchars(ucfirst($booking['status'])); ?>
             </td>

@@ -1,4 +1,6 @@
 <?php
+session_start();
+
 include 'php/header.php'; 
 include 'php/db_connect.php';
 
@@ -79,6 +81,53 @@ if (isset($_GET['id'])) {
             <p><?php echo nl2br(htmlspecialchars($car['description'])); ?></p> <!-- Display Description -->
         </div>
 
+<!-- Rating and Feedback Section -->
+<div class="rating-feedback-section">
+    <h3 class="section-title">Rate and Review This Vehicle</h3>
+    
+    <?php if(isset($_SESSION['user_id'])): ?>
+        <!-- Feedback Form (only shown to logged-in users) -->
+        <div class="feedback-form-container">
+            <form action="submit_feedback.php" method="POST" id="feedbackForm">
+                <input type="hidden" name="car_id" value="<?php echo $car['id']; ?>">
+
+                <!-- Star Rating System -->
+                <div class="form-group rating-group">
+                    <label>Your Rating:</label>
+                    <div class="star-rating">
+                        <input type="radio" id="star5" name="rating" value="5" required>
+                        <label for="star5" title="5 stars"></label>
+                        <input type="radio" id="star4" name="rating" value="4">
+                        <label for="star4" title="4 stars"></label>
+                        <input type="radio" id="star3" name="rating" value="3">
+                        <label for="star3" title="3 stars"></label>
+                        <input type="radio" id="star2" name="rating" value="2">
+                        <label for="star2" title="2 stars"></label><input type="radio" id="star1" name="rating" value="1">
+                        <label for="star1" title="1 star"></label>
+                    </div>
+                </div>
+
+                <!-- Feedback Text -->
+                <div class="form-group">
+                    <label for="feedback">Your Review:</label>
+                    <textarea name="feedback" id="feedback" rows="5" 
+                              placeholder="Share your experience with this vehicle..." 
+                              minlength="20" maxlength="500" required></textarea>
+                    <div class="char-counter"><span id="charCount">0</span>/500 characters</div>
+                </div>
+
+                <!-- Submit Button -->
+                <button type="submit" class="btn-submit-feedback">
+                    <i class="fas fa-paper-plane"></i> Submit Review
+                </button>
+            </form>
+        </div>
+    <?php else: ?>
+        <div class="login-prompt">
+            <p>Please <a href="/car_a/php/login.php">log in</a> to submit your review.</p>
+        </div>
+    <?php endif; ?>
+
         <!-- Booking Dialog (hidden by default) -->
         <div id="bookingDialog" class="dialog-overlay">
             <div class="dialog-content">
@@ -111,6 +160,90 @@ if (isset($_GET['id'])) {
             </div>
         </div>
 
+
+         <!-- Customer Reviews Section -->
+    <div class="customer-reviews">
+        <h3 class="section-title">Customer Reviews</h3>
+        
+        <?php
+        // Calculate average rating
+        $avgRatingStmt = $conn->prepare("SELECT AVG(rating) as avg_rating, COUNT(*) as review_count FROM car_feedback WHERE car_id = ?");
+        $avgRatingStmt->bind_param("i", $car_id);
+        $avgRatingStmt->execute();
+        $avgRatingResult = $avgRatingStmt->get_result();
+        $ratingData = $avgRatingResult->fetch_assoc();
+        $averageRating = round($ratingData['avg_rating'] ?? 0, 1);
+        $reviewCount = $ratingData['review_count'] ?? 0;
+        ?>
+
+         <!-- Rating Summary -->
+         <div class="rating-summary">
+            <div class="average-rating">
+                <span class="rating-number"><?php echo $averageRating; ?></span>
+                <span class="rating-out-of">/5</span>
+                <div class="stars">
+                    <?php
+                    $fullStars = floor($averageRating);
+                    $halfStar = ($averageRating - $fullStars) >= 0.5;
+                    
+                    for ($i = 1; $i <= 5; $i++) {
+                        if ($i <= $fullStars) {
+                            echo '<i class="fas fa-star"></i>';
+                        } elseif ($halfStar && $i == $fullStars + 1) {
+                            echo '<i class="fas fa-star-half-alt"></i>';
+                        } else {
+                            echo '<i class="far fa-star"></i>';
+                        }
+                    }
+                    ?>
+                </div>
+            </div>
+            <div class="review-count">Based on <?php echo $reviewCount; ?> reviews</div>
+        </div>
+         <!-- Individual Reviews -->
+         <div class="reviews-list">
+            <?php
+            $stmt = $conn->prepare("SELECT cf.*, u.first_name, u.last_name 
+                                   FROM car_feedback cf
+                                   JOIN users u ON cf.user_id = u.id
+                                   WHERE cf.car_id = ? 
+                                   ORDER BY cf.created_at DESC");
+            $stmt->bind_param("i", $car_id);
+            $stmt->execute();
+            $result = $stmt->get_result();
+
+            if ($result->num_rows > 0) {
+                while ($row = $result->fetch_assoc()) {
+                    echo '<div class="review-item">';
+                    echo '<div class="review-header">';
+                    echo '<div class="reviewer-name">' . htmlspecialchars($row['first_name'] . ' ' . $row['last_name'][0] . '.') . '</div>';
+                    echo '<div class="review-date">' . date('F j, Y', strtotime($row['created_at'])) . '</div>';
+                    echo '</div>';
+
+
+                    echo '<div class="review-rating">';
+                    for ($i = 1; $i <= 5; $i++) {
+                        if ($i <= $row['rating']) {
+                            echo '<i class="fas fa-star"></i>';
+                        } else {
+                            echo '<i class="far fa-star"></i>';
+                        }
+                    }
+                    echo '</div>';
+                    
+                    echo '<div class="review-content">' . nl2br(htmlspecialchars($row['feedback'])) . '</div>';
+                    echo '</div>';
+                }
+            } else {
+                echo '<div class="no-reviews">';
+                echo '<i class="far fa-comment-dots"></i>';
+                echo '<p>No reviews yet. Be the first to share your experience!</p>';
+                echo '</div>';
+            }
+            ?>
+        </div>
+    </div>
+</div>
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 const dialog = document.getElementById('bookingDialog');
@@ -349,4 +482,284 @@ include 'php/footer.php';
 .dialog-button.cancel:hover {
     background-color: #c82333;
 }
+/* Rating and Feedback Section Styles */
+.rating-feedback-section {
+    margin: 40px 0;
+    padding: 30px;
+    background-color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 15px rgba(0, 0, 0, 0.05);
+}
+
+.section-title {
+    font-size: 22px;
+    color: #333;
+    margin-bottom: 25px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+/* Feedback Form Styles */
+.feedback-form-container {
+    margin-bottom: 40px;
+    padding: 25px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+}
+
+.form-group {
+    margin-bottom: 20px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: #555;
+}
+
+/* Star Rating System */
+.rating-group {
+    margin-bottom: 25px;
+}
+
+.star-rating {
+    display: inline-block;
+    font-size: 0;
+    unicode-bidi: bidi-override;
+    direction: rtl;
+}
+.star-rating input {
+    display: none;
+}
+
+.star-rating label {
+    color: #ccc;
+    font-size: 24px;
+    padding: 0 3px;
+    cursor: pointer;
+    display: inline-block;
+    transition: color 0.2s;
+}.star-rating label:before {
+    content: "★";
+}
+
+.star-rating input:checked ~ label,
+.star-rating label:hover,
+.star-rating label:hover ~ label {
+    color: #ffc107;
+}
+
+.star-rating input:checked + label {
+    color: #ffc107;
+}
+
+/* Textarea Styles */
+textarea#feedback {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: border-color 0.3s;
+    resize: vertical;
+}textarea#feedback:focus {
+    border-color: #4a90e2;
+    outline: none;
+    box-shadow: 0 0 0 2px rgba(74, 144, 226, 0.2);
+}
+
+.char-counter {
+    text-align: right;
+    font-size: 12px;
+    color: #777;
+    margin-top: 5px;
+}
+
+
+/* Submit Button */
+.btn-submit-feedback {
+    background-color: #4a90e2;
+    color: white;
+    padding: 12px 25px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 600;
+    transition: background-color 0.3s;
+    display: inline-flex;
+    align-items: center;
+}
+
+.btn-submit-feedback i {
+    margin-right: 8px;
+}
+
+.btn-submit-feedback:hover {
+    background-color: #3a7bc8;
+}
+
+
+.login-prompt {
+    padding: 20px;
+    background-color: #f5f5f5;
+    border-radius: 4px;
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.login-prompt a {
+    color: #4a90e2;
+    text-decoration: none;
+    font-weight: 600;
+}
+
+.login-prompt a:hover {
+    text-decoration: underline;
+}
+
+/* Customer Reviews Section */
+.customer-reviews {
+    margin-top: 40px;
+}
+.rating-summary {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.average-rating {
+    display: flex;
+    align-items: baseline;
+    margin-right: 30px;
+}
+
+.rating-number {
+    font-size: 42px;
+    font-weight: 700;
+    color: #333;
+}
+.rating-out-of {
+    font-size: 20px;
+    color: #777;
+    margin-right: 15px;
+}
+
+.stars {
+    color: #ffc107;
+    font-size: 20px;
+}
+
+.review-count {
+    font-size: 16px;
+    color: #666;
+}/* Individual Reviews */
+.reviews-list {
+    margin-top: 20px;
+}
+
+.review-item {
+    padding: 20px 0;
+    border-bottom: 1px solid #eee;
+}
+
+.review-item:last-child {
+    border-bottom: none;
+}
+
+.review-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.reviewer-name {
+    font-weight: 600;
+    color: #333;
+}
+.review-date {
+    color: #777;
+    font-size: 14px;
+}
+
+.review-rating {
+    color: #ffc107;
+    margin-bottom: 10px;
+}
+
+.review-content {
+    line-height: 1.6;
+    color: #444;
+}
+
+.no-reviews {
+    text-align: center;
+    padding: 40px 20px;
+    color: #777;
+}
+
+no-reviews i {
+    font-size: 40px;
+    margin-bottom: 15px;
+    color: #ccc;
+}
+
+.no-reviews p {
+    margin: 0;
+    font-size: 16px;
+}
+
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .rating-feedback-section {
+        padding: 20px;
+    }
+    
+    .rating-summary {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .average-rating {
+        margin-bottom: 15px;
+    }
+}
 </style>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Character counter for feedback textarea
+    const feedbackTextarea = document.getElementById('feedback');
+    const charCount = document.getElementById('charCount');
+    
+    if (feedbackTextarea && charCount) {
+        feedbackTextarea.addEventListener('input', function() {
+            charCount.textContent = this.value.length;
+        });
+    }
+    
+    // Form validation
+    const feedbackForm = document.getElementById('feedbackForm');
+    if (feedbackForm) {
+        feedbackForm.addEventListener('submit', function(e) {
+            const rating = document.querySelector('input[name="rating"]:checked');
+            const feedback = document.getElementById('feedback').value.trim();
+            
+            if (!rating) {
+                e.preventDefault();
+                alert('Please select a rating');
+                return;
+            } if (feedback.length < 20) {
+                e.preventDefault();
+                alert('Please provide more detailed feedback (at least 20 characters)');
+                return;
+            }
+        });
+    }
+});
+</script>

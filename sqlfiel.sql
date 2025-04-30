@@ -13,3 +13,13 @@ CREATE TABLE bookings (
     CONSTRAINT fk_vehicle FOREIGN KEY (vehicle_id) REFERENCES vehicles(id),
     CONSTRAINT fk_user FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE car_feedback (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    car_id INT NOT NULL,
+    rating INT NOT NULL CHECK (rating BETWEEN 1 AND 5),
+    feedback TEXT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (car_id) REFERENCES vehicles(id) ON DELETE CASCADE
+);
+ALTER TABLE car_feedback ADD COLUMN user_id INT NOT NULL AFTER car_id;

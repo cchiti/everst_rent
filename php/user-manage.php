@@ -10,6 +10,27 @@ if (!isset($_SESSION['user_id'])) {
 // Include database connection
 include 'db_connect.php';
 
+// Fetch total bookings
+$total_bookings_sql = "SELECT COUNT(*) AS total_bookings FROM bookings";
+$total_bookings_result = $conn->query($total_bookings_sql);
+$total_bookings = $total_bookings_result->fetch_assoc()['total_bookings'];
+
+// Fetch available vehicles
+$available_vehicles_sql = "SELECT COUNT(*) AS available_vehicles FROM vehicles WHERE status = 'available'";
+$available_vehicles_result = $conn->query($available_vehicles_sql);
+$available_vehicles = $available_vehicles_result->fetch_assoc()['available_vehicles'];
+
+// Fetch pending maintenance requests
+$pending_maintenance_sql = "SELECT COUNT(*) AS pending_maintenance FROM maintenance_requests WHERE status = 'pending'";
+$pending_maintenance_result = $conn->query($pending_maintenance_sql);
+$pending_maintenance = $pending_maintenance_result->fetch_assoc()['pending_maintenance'];
+
+// Fetch total reviews
+$total_reviews_sql = "SELECT COUNT(*) AS total_reviews FROM car_feedback";
+$total_reviews_result = $conn->query($total_reviews_sql);
+$total_reviews = $total_reviews_result->fetch_assoc()['total_reviews'];
+
+
 // Fetch reviews from the database
 $review_sql = "
     SELECT 
@@ -290,8 +311,184 @@ if (!$review_result || !$user_result) {
             margin-top: 5px;
         }
     </style>
+
+<style>
+    .container {
+        max-width: 1200px;
+        margin: 30px auto;
+        padding: 20px;
+    }
+    
+    .container h2 {
+        font-size: 28px;
+        color: #2c3e50;
+        margin-bottom: 25px;
+        font-weight: 600;
+    }
+    
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+        gap: 25px;
+        margin-bottom: 30px;
+    }
+    
+    .card {
+        background-color: white;
+        border-radius: 12px;
+        padding: 25px;
+        text-align: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s ease;
+        position: relative;
+        overflow: hidden;
+    }
+    
+    .card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.12);
+    }
+    
+    .card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+    }
+    
+    .booking-card::before {
+        background: linear-gradient(90deg, #3498db, #2ecc71);
+    }
+    
+    .vehicle-card::before {
+        background: linear-gradient(90deg, #e74c3c, #f39c12);
+    }
+    
+    .maintenance-card::before {
+        background: linear-gradient(90deg, #9b59b6, #34495e);
+    }
+    
+    .review-card::before {
+        background: linear-gradient(90deg, #1abc9c, #27ae60);
+    }
+    
+    .card-icon {
+        width: 60px;
+        height: 60px;
+        margin: 0 auto 15px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 50%;
+    }
+    
+    .booking-card .card-icon {
+        background-color: rgba(52, 152, 219, 0.1);
+        color: #3498db;
+    }
+    
+    .vehicle-card .card-icon {
+        background-color: rgba(231, 76, 60, 0.1);
+        color: #e74c3c;
+    }
+    
+    .maintenance-card .card-icon {
+        background-color: rgba(155, 89, 182, 0.1);
+        color: #9b59b6;
+    }
+    
+    .review-card .card-icon {
+        background-color: rgba(26, 188, 156, 0.1);
+        color: #1abc9c;
+    }
+    
+    .card-icon svg {
+        width: 30px;
+        height: 30px;
+    }
+    
+    .card-content h3 {
+        margin: 0 0 10px;
+        font-size: 18px;
+        font-weight: 500;
+        color: #7f8c8d;
+    }
+    
+    .card-content p {
+        margin: 0;
+        font-size: 28px;
+        font-weight: 700;
+        color: #2c3e50;
+    }
+    
+    @media (max-width: 768px) {
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr);
+        }
+    }
+    
+    @media (max-width: 480px) {
+        .summary-cards {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
 </head>
 <body>
+
+<div class="container">
+    <h2>Dashboard Summary</h2>
+    <div class="summary-cards">
+        <div class="card booking-card">
+            <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M17 3H7c-1.1 0-2 .9-2 2v16l7-3 7 3V5c0-1.1-.9-2-2-2z"/>
+                </svg>
+            </div>
+            <div class="card-content">
+                <h3>Total Bookings</h3>
+                <p><?= htmlspecialchars($total_bookings) ?></p>
+            </div>
+        </div>
+        <div class="card vehicle-card">
+            <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M18.92 6.01C18.72 5.42 18.16 5 17.5 5h-11c-.66 0-1.21.42-1.42 1.01L3 12v8c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-1h12v1c0 .55.45 1 1 1h1c.55 0 1-.45 1-1v-8l-2.08-5.99zM6.85 7h10.29l1.08 3.11H5.77L6.85 7zM19 17H5v-5h14v5z"/>
+                </svg>
+            </div>
+            <div class="card-content">
+                <h3>Available Vehicles</h3>
+                <p><?= htmlspecialchars($available_vehicles) ?></p>
+            </div>
+        </div>
+        <div class="card maintenance-card">
+            <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M19.14 7.5c-.17-.15-.37-.29-.58-.41l-1.79 1.79c.12.21.26.41.41.58l1.78-1.78-.02-.02zm1.36 5.5c-.08-.49-.21-.96-.41-1.41l-1.8 1.8c.45.2.92.33 1.41.41l.8-1.8zm-18.01-8.48l1.8-1.8c-.49-.08-.96-.21-1.41-.41l-1.8 1.8c.2.45.33.92.41 1.41zm15.71 15.71l-1.79-1.79c-.21.12-.41.26-.58.41l1.78 1.78.02-.02.57-.38zm-9.69-2.28c-.85.24-1.72.39-2.61.45v1.49c1.32-.09 2.59-.35 3.8-.75l-1.19-1.19zM12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"/>
+                </svg>
+            </div>
+            <div class="card-content">
+                <h3>Pending Maintenance</h3>
+                <p><?= htmlspecialchars($pending_maintenance) ?></p>
+            </div>
+        </div>
+        <div class="card review-card">
+            <div class="card-icon">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5.5-2.5l7.51-3.49L17.5 6.5 9.99 9.99 6.5 17.5zm5.5-6.6c.61 0 1.1.49 1.1 1.1s-.49 1.1-1.1 1.1-1.1-.49-1.1-1.1.49-1.1 1.1-1.1z"/>
+                </svg>
+            </div>
+            <div class="card-content">
+                <h3>Total Reviews</h3>
+                <p><?= htmlspecialchars($total_reviews) ?></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 <div class="container">
     <h3>Review From Customer</h3>

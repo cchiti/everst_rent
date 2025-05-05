@@ -128,38 +128,72 @@ if (isset($_GET['id'])) {
         </div>
     <?php endif; ?>
 
-        <!-- Booking Dialog (hidden by default) -->
-        <div id="bookingDialog" class="dialog-overlay">
-            <div class="dialog-content">
-                <h2>Booking Details</h2>
-                <div class="dialog-row">
-                    <span class="dialog-label">Car Name:</span>
-                    <span class="dialog-value"><?php echo htmlspecialchars($car['make'] . ' ' . $car['model'] . ' ' . $car['year']); ?></span>
+      <!-- Booking Dialog (hidden by default) -->
+<div id="bookingDialog" class="dialog-overlay">
+    <div class="dialog-content">
+        <h2>Booking Details</h2>
+        <div class="dialog-row">
+            <span class="dialog-label">Car Name:</span>
+            <span class="dialog-value"><?php echo htmlspecialchars($car['make'] . ' ' . $car['model'] . ' ' . $car['year']); ?></span>
+        </div>
+        <div class="dialog-row">
+            <label class="dialog-label" for="startDate">Start Date:</label>
+            <input type="date" id="startDate" name="startDate" class="dialog-input" required>
+        </div>
+        <div class="dialog-row">
+            <label class="dialog-label" for="endDate">End Date:</label>
+            <input type="date" id="endDate" name="endDate" class="dialog-input" required>
+        </div>
+        <div class="dialog-row">
+            <span class="dialog-label">Rate per day:</span>
+            <span class="dialog-value">$<?php echo htmlspecialchars($car['daily_rate']); ?></span>
+        </div>
+        <div class="dialog-row">
+            <span class="dialog-label">Total Cost:</span>
+            <span class="dialog-value" id="totalCost">$0.00</span>
+        </div>
+        
+        <!-- Payment Form (initially hidden) -->
+        <div id="paymentFormContainer" style="display: none;">
+            <h3>Payment Information</h3>
+            <div class="form-group">
+                <label for="cardNumber">Card Number</label>
+                <input type="text" id="cardNumber" class="dialog-input" placeholder="1234 5678 9012 3456" required>
+            </div>
+            <div class="form-group">
+                <label for="cardName">Name on Card</label>
+                <input type="text" id="cardName" class="dialog-input" placeholder="John Doe" required>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="expiryDate">Expiry Date</label>
+                    <input type="text" id="expiryDate" class="dialog-input" placeholder="MM/YY" required>
                 </div>
-                <div class="dialog-row">
-                    <label class="dialog-label" for="startDate">Start Date:</label>
-                    <input type="date" id="startDate" name="startDate" class="dialog-input" required>
-                </div>
-                <div class="dialog-row">
-                    <label class="dialog-label" for="endDate">End Date:</label>
-                    <input type="date" id="endDate" name="endDate" class="dialog-input" required>
-                </div>
-                <div class="dialog-row">
-                    <span class="dialog-label">Rate per day:</span>
-                    <span class="dialog-value">$<?php echo htmlspecialchars($car['daily_rate']); ?></span>
-                </div>
-                <div class="dialog-buttons">
-                    <button type="button" id="cancelBooking" class="dialog-button cancel">Cancel</button>
-                    <form method="post" action="confirm_booking.php" id="bookingForm">
-                        <input type="hidden" name="car_id" value="<?php echo $car['id']; ?>">
-                        <input type="hidden" name="start_date" id="formStartDate">
-                        <input type="hidden" name="end_date" id="formEndDate">
-                        <button type="submit" class="dialog-button confirm">Confirm Booking</button>
-                    </form>
+                <div class="form-group">
+                    <label for="cvv">CVV</label>
+                    <input type="text" id="cvv" class="dialog-input" placeholder="123" required>
                 </div>
             </div>
         </div>
+        
+        <div class="dialog-buttons">
+            <button type="button" id="cancelBooking" class="dialog-button cancel">Cancel</button>
+            <button type="button" id="bookNowBtn" class="dialog-button book-now">Book Now (Pay Later)</button>
+            <button type="button" id="payNowBtn" class="dialog-button pay-now">Pay Now & Confirm</button>
+            <button type="button" id="submitPaymentBtn" class="dialog-button confirm" style="display: none;">Submit Payment</button>
+        </div>
+    </div>
+</div>
 
+<!-- Hidden form for payment submission -->
+<form method="post" action="process_payment.php" id="paymentSubmissionForm" style="display: none;">
+    <input type="hidden" name="car_id" value="<?php echo $car['id']; ?>">
+    <input type="hidden" name="start_date" id="formStartDate">
+    <input type="hidden" name="end_date" id="formEndDate">
+    <input type="hidden" name="total_amount" id="formTotalAmount">
+    <input type="hidden" name="payment_method" value="card">
+    <input type="hidden" name="card_last4" id="cardLast4">
+</form>
 
          <!-- Customer Reviews Section -->
     <div class="customer-reviews">
@@ -245,58 +279,166 @@ if (isset($_GET['id'])) {
     </div>
 </div>
         <script>
-            document.addEventListener('DOMContentLoaded', function() {
-                const dialog = document.getElementById('bookingDialog');
-                const openButton = document.getElementById('openBookingDialog');
-                const cancelButton = document.getElementById('cancelBooking');
-                const startDateInput = document.getElementById('startDate');
-                const endDateInput = document.getElementById('endDate');
-                const formStartDate = document.getElementById('formStartDate');
-                const formEndDate = document.getElementById('formEndDate');
-                const bookingForm = document.getElementById('bookingForm');
+        document.addEventListener('DOMContentLoaded', function() {
+    const dialog = document.getElementById('bookingDialog');
+    const openButton = document.getElementById('openBookingDialog');
+    const cancelButton = document.getElementById('cancelBooking');
+    const bookNowBtn = document.getElementById('bookNowBtn');
+    const payNowBtn = document.getElementById('payNowBtn');
+    const submitPaymentBtn = document.getElementById('submitPaymentBtn');
+    const paymentFormContainer = document.getElementById('paymentFormContainer');
+    const startDateInput = document.getElementById('startDate');
+    const endDateInput = document.getElementById('endDate');
+    const totalCostSpan = document.getElementById('totalCost');
+    const paymentSubmissionForm = document.getElementById('paymentSubmissionForm');
+    const formStartDate = document.getElementById('formStartDate');
+    const formEndDate = document.getElementById('formEndDate');
+    const formTotalAmount = document.getElementById('formTotalAmount');
+    const cardLast4 = document.getElementById('cardLast4');
+    const dailyRate = <?php echo $car['daily_rate']; ?>;
+    
+    let currentBookingType = ''; // 'book_now' or 'pay_now'
 
-                // Set minimum date to today
-                const today = new Date().toISOString().split('T')[0];
-                startDateInput.min = today;
-                
-                // Update end date min date when start date changes
-                startDateInput.addEventListener('change', function() {
-                    endDateInput.min = this.value;
-                    if (endDateInput.value && endDateInput.value < this.value) {
-                        endDateInput.value = this.value;
-                    }
-                });
+    // Set minimum date to today
+    const today = new Date().toISOString().split('T')[0];
+    startDateInput.min = today;
+    
+    // Update end date min date when start date changes
+    startDateInput.addEventListener('change', function() {
+        endDateInput.min = this.value;
+        if (endDateInput.value && endDateInput.value < this.value) {
+            endDateInput.value = this.value;
+        }
+        calculateTotal();
+    });
 
-                // Open dialog
-                openButton.addEventListener('click', function() {
-                    dialog.style.display = 'flex';
-                });
+    // Calculate total when end date changes
+    endDateInput.addEventListener('change', calculateTotal);
 
-                // Close dialog
-                cancelButton.addEventListener('click', function() {
-                    dialog.style.display = 'none';
-                });
+    function calculateTotal() {
+        if (startDateInput.value && endDateInput.value) {
+            const start = new Date(startDateInput.value);
+            const end = new Date(endDateInput.value);
+            const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+            const total = days * dailyRate;
+            totalCostSpan.textContent = '$' + total.toFixed(2);
+        } else {
+            totalCostSpan.textContent = '$0.00';
+        }
+    }
 
-                // Handle form submission
-                bookingForm.addEventListener('submit', function(e) {
-                    if (!startDateInput.value || !endDateInput.value) {
-                        e.preventDefault();
-                        alert('Please select both start and end dates');
-                        return;
-                    }
-                    
-                    // Set the hidden form values
-                    formStartDate.value = startDateInput.value;
-                    formEndDate.value = endDateInput.value;
-                });
+    // Open dialog
+    openButton.addEventListener('click', function() {
+        dialog.style.display = 'flex';
+        resetPaymentForm();
+    });
 
-                // Close dialog when clicking outside
-                window.addEventListener('click', function(event) {
-                    if (event.target === dialog) {
-                        dialog.style.display = 'none';
-                    }
-                });
-            });
+    // Close dialog
+    cancelButton.addEventListener('click', function() {
+        dialog.style.display = 'none';
+        resetPaymentForm();
+    });
+
+    // Handle Book Now button
+    bookNowBtn.addEventListener('click', function() {
+        if (!validateDates()) return;
+        
+        // Set the hidden form values
+        formStartDate.value = startDateInput.value;
+        formEndDate.value = endDateInput.value;
+        formTotalAmount.value = calculateTotalAmount();
+        
+        // Submit the form to confirm_booking.php
+        paymentSubmissionForm.action = 'confirm_booking.php';
+        paymentSubmissionForm.submit();
+    });
+
+    // Handle Pay Now button
+    payNowBtn.addEventListener('click', function() {
+        if (!validateDates()) return;
+        
+        // Show payment form and hide other buttons
+        paymentFormContainer.style.display = 'block';
+        bookNowBtn.style.display = 'none';
+        payNowBtn.style.display = 'none';
+        submitPaymentBtn.style.display = 'inline-block';
+        
+        // Store the booking details
+        formStartDate.value = startDateInput.value;
+        formEndDate.value = endDateInput.value;
+        formTotalAmount.value = calculateTotalAmount();
+    });
+
+    // Handle Submit Payment button
+    submitPaymentBtn.addEventListener('click', function() {
+        if (!validatePaymentForm()) return;
+        
+        // Get last 4 digits of card
+        const cardNumber = document.getElementById('cardNumber').value.replace(/\s+/g, '');
+        cardLast4.value = cardNumber.slice(-4);
+        
+        // Submit the form to process_payment.php
+        paymentSubmissionForm.action = 'process_payment.php';
+        paymentSubmissionForm.submit();
+    });
+
+    // Helper functions
+    function validateDates() {
+        if (!startDateInput.value || !endDateInput.value) {
+            alert('Please select both start and end dates');
+            return false;
+        }
+        
+        const start = new Date(startDateInput.value);
+        const end = new Date(endDateInput.value);
+        
+        if (start > end) {
+            alert('End date must be after start date');
+            return false;
+        }
+        
+        return true;
+    }
+
+    function validatePaymentForm() {
+        const cardNumber = document.getElementById('cardNumber').value.replace(/\s+/g, '');
+        const cardName = document.getElementById('cardName').value.trim();
+        const expiryDate = document.getElementById('expiryDate').value.trim();
+        const cvv = document.getElementById('cvv').value.trim();
+        
+        // Simple validation - in production use a proper library
+        if (!/^\d{13,16}$/.test(cardNumber)) {
+            alert('Please enter a valid card number');
+            return false;
+        }
+        
+        if (cardName.length < 3) {
+            alert('Please enter the name on card');
+            return false;
+        }
+        
+        if (!/^\d{3,4}$/.test(cvv)) {
+            alert('Please enter a valid CVV');
+            return false;
+        }
+        
+        return true;
+    }
+
+    function calculateTotalAmount() {
+        const start = new Date(startDateInput.value);
+        const end = new Date(endDateInput.value);
+        const days = Math.ceil((end - start) / (1000 * 60 * 60 * 24)) + 1;
+        return days * dailyRate;
+    }
+
+    function resetPaymentForm() {
+        paymentFormContainer.style.display = 'none';
+        bookNowBtn.style.display = 'inline-block';
+        payNowBtn.style.display = 'inline-block';
+        submitPaymentBtn.style.display = 'none';
+    }
+});
         </script>
 
         <?php
@@ -729,6 +871,7 @@ no-reviews i {
         margin-bottom: 15px;
     }
 }
+
 </style>
 
 <script>

@@ -9,6 +9,136 @@ if (!isset($_SESSION['user_id'])) {
     exit();
 }
 ?>
+<style>
+    .maintenance-container {
+    font-family: 'Arial', sans-serif;
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.maintenance-container h2 {
+    color: #333;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 24px;
+}
+
+.maintenance-list {
+    overflow-x: auto;
+}
+
+.maintenance-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 15px;
+}
+
+.maintenance-table thead {
+    background-color: #2c3e50;
+    color: white;
+}
+
+.maintenance-table th, 
+.maintenance-table td {
+    padding: 12px 15px;
+    text-align: left;
+    border-bottom: 1px solid #ddd;
+}
+
+.maintenance-table th {
+    font-weight: 600;
+    position: sticky;
+    top: 0;
+}
+
+.maintenance-table tbody tr:hover {
+    background-color: #f1f1f1;
+}
+
+/* Status badges */
+.maintenance-table .status-pending {
+    background-color: #f39c12;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.maintenance-table .status-completed {
+    background-color: #2ecc71;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+.maintenance-table .status-in-progress {
+    background-color: #3498db;
+    color: white;
+    padding: 5px 10px;
+    border-radius: 20px;
+    font-size: 12px;
+}
+
+/* Priority indicators */
+.maintenance-table .priority-high {
+    color: #e74c3c;
+    font-weight: bold;
+}
+
+.maintenance-table .priority-medium {
+    color: #f39c12;
+    font-weight: bold;
+}
+
+.maintenance-table .priority-low {
+    color: #2ecc71;
+    font-weight: bold;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .maintenance-table {
+        display: block;
+    }
+    
+    .maintenance-table thead {
+        display: none;
+    }
+    
+    .maintenance-table tbody, 
+    .maintenance-table tr, 
+    .maintenance-table td {
+        display: block;
+        width: 100%;
+    }
+    
+    .maintenance-table tr {
+        margin-bottom: 15px;
+        border: 1px solid #ddd;
+    }
+    
+    .maintenance-table td {
+        text-align: right;
+        padding-left: 50%;
+        position: relative;
+    }
+    
+    .maintenance-table td::before {
+        content: attr(data-label);
+        position: absolute;
+        left: 15px;
+        width: 45%;
+        padding-right: 10px;
+        font-weight: bold;
+        text-align: left;
+    }
+}
+</style>
 <div class="vehicles-container">
     <h1>Manage Vehicles</h1>
     
@@ -160,6 +290,55 @@ if (!isset($_SESSION['user_id'])) {
         </form>
     </div>
 </div>
+
+<div class="maintenance-container">
+    <h2>Maintenance History</h2>
+    <div class="maintenance-list">
+        <table class="maintenance-table">
+            <thead>
+                <tr>
+                    <th>Vehicle ID</th>
+                    <th>Description</th>
+                    <th>Cost</th>
+                    <th>Priority</th>
+                    <th>Status</th>
+                    <th>Created Date</th>
+                    <th>Updated Date</th>
+                </tr>
+            </thead>
+<tbody id="maintenanceBody">
+                <?php include('fetch_maintenance.php'); ?>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+function loadMaintenanceData() {
+    $.ajax({
+        url: 'fetch_maintenance.php', 
+        method: 'GET',
+        success: function(response) {
+            $('#maintenanceBody').html(response);
+        },
+        error: function() {
+            $('#maintenanceBody').html('<tr><td colspan="7">Please Refresh For New Data.</td></tr>');
+        }
+    });
+}
+
+// Call the function once the page loads
+$(document).ready(function() {
+    loadMaintenanceData();
+
+    // Optionally refresh every 30 seconds
+    setInterval(loadMaintenanceData, 30000);
+});
+</script>
+
 
 <script>
 $(document).ready(function() {

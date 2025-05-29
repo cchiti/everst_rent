@@ -96,3 +96,17 @@ CREATE TABLE maintenance_requests (
     KEY requested_by (requested_by),
     KEY assigned_to (assigned_to)
 );
+
+
+-- insert 
+-- Insert 2 staff users
+INSERT INTO users (first_name, last_name, email, password, dob, phone, license_number, address, role)
+VALUES 
+('Alice', 'Brown', 'staff1@test.com', '123456', '1990-01-01', '1234567890', 'LIC001', '123 Main St, City A', 'staff'),
+('Bob', 'Smith', 'staff2@test.com', '123456', '1985-05-10', '0987654321', 'LIC002', '456 Elm St, City B', 'staff');
+
+-- Insert 2 mechanic users
+INSERT INTO users (first_name, last_name, email, password, dob, phone, license_number, address, role)
+VALUES 
+('Charlie', 'Davis', 'mechanic1@test.com', '123456', '1992-07-15', '5556667777', 'LIC003', '789 Oak St, City C', 'mechanic'),
+('Diana', 'Evans', 'mechanic2@test.com', '123456', '1988-03-22', '4443332222', 'LIC004', '321 Pine St, City D', 'mechanic');

@@ -1,7 +1,7 @@
 <?php
 session_start(); // Start session
 
-require_once 'db_connect.php'; // Reuse the shared DB connection
+require_once(__DIR__ . '/db_connect.php');  // safest path
 
 $error_message = '';
 

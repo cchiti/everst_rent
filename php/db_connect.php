@@ -1,9 +1,9 @@
 <?php
 // db_connect.php
 
-$servername = "localhost";  //  server name (localhost for local XAMPP)
-$username = "root";          // default username for XAMPP
-$password = "";              // default password is empty for XAMPP
+$servername = "";  //  server name (localhost for local XAMPP)
+$username = "i9808830_q0cr1";          // default username for XAMPP
+$password = "S.RVu9QHw0ImqMHs2YJ91";              // default password is empty for XAMPP
 $database = "car_a";         
 
 // Create connection

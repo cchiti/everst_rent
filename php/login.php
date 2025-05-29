@@ -1,47 +1,33 @@
 <?php
 session_start(); // Start session to store user info
 
+require_once 'db_connect.php'; // Reuse DB connection
+
 // If user is already logged in, redirect based on role
 if (isset($_SESSION['user_id']) && isset($_SESSION['user_role'])) {
     switch ($_SESSION['user_role']) {
         case 'staff':
             header("Location: /car_a/php/dashboard.php");
-            break;
+            exit();
         case 'mechanic':
             header("Location: /car_a/php/maintenance_dashboard.php");
-            break;
+            exit();
         case 'customer':
             header("Location: /car_a/php/cars.php");
-            break;
+            exit();
         default:
-            // Unknown role, logout for safety
             header("Location: logout.php");
-            break;
+            exit();
     }
-    exit();
 }
 
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "car_a"; 
+$error_message = '';
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-$error_message = ''; // Initialize an empty variable for error message
-
-// Check if form is submitted
+// Handle login
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['signIn'])) {
-    // Get form data
     $email = $_POST['email'];
     $password = $_POST['password'];
 
-    // Check if user exists with the entered email
     $sql = "SELECT * FROM users WHERE email = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param('s', $email);
@@ -49,42 +35,38 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['signIn'])) {
     $result = $stmt->get_result();
 
     if ($result->num_rows > 0) {
-        // User found, fetch user data
         $user = $result->fetch_assoc();
 
-        // Verify password using password_verify() with the stored hash
         if (password_verify($password, $user['password'])) {
-            // Store user data in session
             $_SESSION['user_id'] = $user['id'];
             $_SESSION['user_name'] = $user['first_name'];
             $_SESSION['user_role'] = $user['role'];
 
-            // Get the return_url parameter if it exists, default to 'cars.php'
-            $return_url = isset($_GET['return_url']) ? $_GET['return_url'] : 'cars.php';
-            
-            // Redirect based on role
-    if ($user['role'] === 'staff') {
-        header("Location: /car_a/php/dashboard.php");
-        exit();
-    } elseif ($user['role'] === 'mechanic') {
-        header("Location: /car_a/php/maintenance_dashboard.php");  // <-- mechanic goes here
-        exit();
-    } else {
-        // Normal customer
-        $return_url = isset($_GET['return_url']) ? $_GET['return_url'] : 'cars.php';
-        header("Location: /car_a/$return_url");
-        exit();
-    }
+            switch ($user['role']) {
+                case 'staff':
+                    header("Location: /car_a/php/dashboard.php");
+                    break;
+                case 'mechanic':
+                    header("Location: /car_a/php/maintenance_dashboard.php");
+                    break;
+                case 'customer':
+                default:
+                    $return_url = isset($_GET['return_url']) ? $_GET['return_url'] : 'cars.php';
+                    header("Location: /car_a/" . $return_url);
+                    break;
+            }
+            exit();
         } else {
-            $error_message = "Invalid password!"; // Set error message for wrong password
+            $error_message = "Invalid password!";
         }
     } else {
-        $error_message = "No user found with this email!"; // Set error message for wrong email
+        $error_message = "No user found with this email!";
     }
 }
 
 $conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">

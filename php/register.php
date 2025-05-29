@@ -1,19 +1,9 @@
 <?php
-session_start(); // Start session to store user info
+session_start(); // Start session
 
-// Database connection
-$servername = "localhost";
-$username = "root";
-$password = "";
-$dbname = "car_a"; 
+require_once 'db_connect.php'; // Reuse the shared DB connection
 
-$conn = new mysqli($servername, $username, $password, $dbname);
-
-if ($conn->connect_error) {
-    die("Connection failed: " . $conn->connect_error);
-}
-
-$error_message = ''; // Initialize an empty variable for error message
+$error_message = '';
 
 // Check if form is submitted
 if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
@@ -30,7 +20,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
     // Hash the password
     $hashed_password = password_hash($password, PASSWORD_DEFAULT);
 
-    // Check if email already exists (prepared statement for security)
+    // Check if email already exists
     $sql = "SELECT * FROM users WHERE email = ?";
     $stmt = $conn->prepare($sql);
     $stmt->bind_param("s", $email);
@@ -40,14 +30,13 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
     if ($result->num_rows > 0) {
         $error_message = "Email is already registered!";
     } else {
-        // Insert new user into database (prepared statement for security)
+        // Insert new user
         $sql = "INSERT INTO users (first_name, last_name, email, password, dob, phone, license_number, address) 
                 VALUES (?, ?, ?, ?, ?, ?, ?, ?)";
         $stmt = $conn->prepare($sql);
         $stmt->bind_param("ssssssss", $first_name, $last_name, $email, $hashed_password, $dob, $phone, $license_number, $address);
 
         if ($stmt->execute()) {
-            // Registration successful, redirect to login page
             header("Location: login.php");
             exit();
         } else {
@@ -58,6 +47,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST" && isset($_POST['register'])) {
 
 $conn->close();
 ?>
+
 
 <!DOCTYPE html>
 <html lang="en">
